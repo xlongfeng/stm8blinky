@@ -4,6 +4,7 @@
 .*.swp
 *.a
 *.asm
+*.cdb
 *.dll
 *.dylib
 *.ihx
