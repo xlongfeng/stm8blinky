@@ -1,18 +1,24 @@
 #include <stdint.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #include "stm8s.h"
 
 #ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t* file, uint32_t line)
 {
-    /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+    printf("Assert failed @ file:%s, line %d\n", file, line);
 
     /* Infinite loop */
     while (1) {
     }
 }
 #endif
+
+void putchar(char c)
+{
+
+}
 
 void delay(uint16_t nCount)
 {
