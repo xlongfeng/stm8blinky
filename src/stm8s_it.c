@@ -279,6 +279,9 @@ INTERRUPT_HANDLER(TIM1_CAP_COM_IRQHandler, 12)
   /* In order to detect unexpected events during development,
      it is recommended to set a breakpoint on the following instruction.
   */
+
+  extern void tim2_update_interrupt(void);
+  tim2_update_interrupt();
  }
 
 /**
