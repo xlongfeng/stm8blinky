@@ -12,12 +12,22 @@
 #define CONFIG_CLK_MASTER       (CONFIG_CLK_HSI)
 #define CONFIG_HZ               (HZ)
 
+void watchdog();
+
 void tim2_update_interrupt(void)
 {
     if (TIM2_GetITStatus(TIM2_IT_UPDATE) != RESET) {
         TIM2_ClearITPendingBit(TIM2_IT_UPDATE);
         tick();
     }
+}
+
+void mdelay(uint32_t ms)
+{
+    uint32_t delay = jiffies + msecs_to_jiffies(ms);
+
+    while (time_before(jiffies, delay))
+        watchdog();
 }
 
 void iwdog_init(void)
@@ -117,6 +127,113 @@ void display_banner(void)
     reset_status();
 }
 
+void keyboard_init(void )
+{
+    GPIO_Init(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
+}
+
+int keyboard_press(void)
+{
+    uint32_t debouncing = jiffies + msecs_to_jiffies(1);
+    int pressed = -1;
+
+    if (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET) {
+        do {
+            if (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) != RESET)
+                return -1;
+            watchdog();
+        } while (time_before(jiffies, debouncing));
+
+        /* wait for button release */
+        while (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET)
+            watchdog();
+
+        pressed = 0;
+    }
+
+    return pressed;
+}
+
+void pulse_output_init(void)
+{
+    GPIO_Init(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
+}
+
+void pulse_output(uint8_t value)
+{
+    GPIO_WriteHigh(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1);
+    mdelay(value * 5);
+    GPIO_WriteLow(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1);
+}
+
+void sensor_input_disable(void)
+{
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_FL_NO_IT);
+
+    GPIO_Init(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_FL_NO_IT);
+}
+
+void sensor_input_enable(void)
+{
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_PU_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_PU_NO_IT);
+
+    GPIO_Init(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_OUT_OD_LOW_SLOW);
+}
+
+uint8_t sensor_input(void)
+{
+    uint8_t value = 1;
+
+    sensor_input_enable();
+
+    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3) == RESET)
+        value = 2;
+
+    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4) == RESET)
+        value = 3;
+
+    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5) == RESET)
+        value = 4;
+
+    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6) == RESET)
+        value = 5;
+
+    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7) == RESET)
+        value = 6;
+
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1) == RESET)
+        value = 7;
+
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET)
+        value = 8;
+
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3) == RESET)
+        value = 9;
+
+    sensor_input_disable();
+
+    return value;
+}
+
+void sensor_init(void)
+{
+    sensor_input_disable();
+}
+
 int main()
 {
     uint32_t curr_time = jiffies;
@@ -130,11 +247,21 @@ int main()
 
     enableInterrupts();
 
+    keyboard_init();
+    pulse_output_init();
+    sensor_init();
+
     for (;;) {
         if (time_after_eq(jiffies, curr_time + msecs_to_jiffies(500))) {
             curr_time = jiffies;
             GPIO_WriteReverse(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
         }
+
+        if (keyboard_press() != -1) {
+            GPIO_WriteHigh(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+            pulse_output(sensor_input());
+        }
+
         watchdog();
     }
 }
