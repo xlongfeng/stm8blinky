@@ -21,7 +21,9 @@ SOURCES += \
     src/stm8s_tim2.c \
     src/stm8s_uart1.c \
     src/time.c \
-    libs/STM8S_StdPeriph_Driver/src/stm8s_gpio.c
+    libs/STM8S_StdPeriph_Driver/src/stm8s_gpio.c \
+    libs/STM8S_StdPeriph_Driver/src/stm8s_iwdg.c \
+    libs/STM8S_StdPeriph_Driver/src/stm8s_rst.c
 
 HEADERS += \
     src/jiffies.h \
@@ -30,5 +32,7 @@ HEADERS += \
     libs/STM8S_StdPeriph_Driver/inc/stm8s.h \
     libs/STM8S_StdPeriph_Driver/inc/stm8s_clk.h \
     libs/STM8S_StdPeriph_Driver/inc/stm8s_gpio.h \
+    libs/STM8S_StdPeriph_Driver/inc/stm8s_iwdg.h \
+    libs/STM8S_StdPeriph_Driver/inc/stm8s_rst.h \
     libs/STM8S_StdPeriph_Driver/inc/stm8s_tim2.h \
     libs/STM8S_StdPeriph_Driver/inc/stm8s_uart1.h
