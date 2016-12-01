@@ -66,6 +66,44 @@ void gpio_init(void)
     GPIO_Init(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5, GPIO_MODE_OUT_OD_LOW_SLOW);
 }
 
+#define HEARDBEAT_PERIOD    1260
+
+void led_heartbeat(void)
+{
+    static uint32_t delay_time;
+    static uint8_t phase = 0;
+    bool value = FALSE;
+
+    if (time_before(jiffies, delay_time))
+        return;
+
+    switch (phase) {
+    case 0:
+        phase++;
+        delay_time = jiffies + msecs_to_jiffies(70);
+        value = TRUE;
+        break;
+    case 1:
+        phase++;
+        delay_time = jiffies + msecs_to_jiffies(HEARDBEAT_PERIOD / 4) - msecs_to_jiffies(70);
+        break;
+    case 2:
+        phase++;
+        delay_time = jiffies + msecs_to_jiffies(70);
+        value = TRUE;
+        break;
+    default:
+        phase = 0;
+        delay_time = jiffies + msecs_to_jiffies(HEARDBEAT_PERIOD) - msecs_to_jiffies(HEARDBEAT_PERIOD / 4) - msecs_to_jiffies(70);
+        break;
+    }
+
+    if (value)
+        GPIO_WriteLow(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+    else
+        GPIO_WriteHigh(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+}
+
 void tim_init(void)
 {
     TIM2_DeInit();
@@ -236,8 +274,6 @@ void sensor_init(void)
 
 int main()
 {
-    uint32_t curr_time = jiffies;
-
     iwdog_init();
     uart_init();
     gpio_init();
@@ -252,13 +288,10 @@ int main()
     sensor_init();
 
     for (;;) {
-        if (time_after_eq(jiffies, curr_time + msecs_to_jiffies(500))) {
-            curr_time = jiffies;
-            GPIO_WriteReverse(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
-        }
+        led_heartbeat();
 
         if (keyboard_press() != -1) {
-            GPIO_WriteHigh(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
+            GPIO_WriteLow(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
             pulse_output(sensor_input());
         }
 
