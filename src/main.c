@@ -165,43 +165,27 @@ void display_banner(void)
     reset_status();
 }
 
-void keyboard_init(void )
+void beeper_init(void)
 {
-    GPIO_Init(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
+    BEEP_DeInit();
+    BEEP_Init(BEEP_FREQUENCY_1KHZ);
+
+    BEEP_Cmd(ENABLE);
+    mdelay(100);
+    BEEP_Cmd(DISABLE);
+    mdelay(100);
+    BEEP_Cmd(ENABLE);
+    mdelay(100);
+    BEEP_Cmd(DISABLE);
+    mdelay(500);
+
+    BEEP_DeInit();
+    BEEP_Init(BEEP_FREQUENCY_2KHZ);
 }
 
-int keyboard_press(void)
+void beeper_output(void)
 {
-    uint32_t debouncing = jiffies + msecs_to_jiffies(1);
-    int pressed = -1;
-
-    if (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET) {
-        do {
-            if (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) != RESET)
-                return -1;
-            watchdog();
-        } while (time_before(jiffies, debouncing));
-
-        /* wait for button release */
-        while (GPIO_ReadInputPin(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET)
-            watchdog();
-
-        pressed = 0;
-    }
-
-    return pressed;
-}
-
-void pulse_output_init(void)
-{
-    GPIO_Init(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_OUT_PP_LOW_SLOW);
-}
-
-void pulse_output(uint8_t value)
-{
-    GPIO_WriteHigh(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1);
-    mdelay(value * 5);
-    GPIO_WriteLow(GPIOA, (GPIO_Pin_TypeDef)GPIO_PIN_1);
+    BEEP_Cmd(ENABLE);
 }
 
 void sensor_input_disable(void)
@@ -209,13 +193,8 @@ void sensor_input_disable(void)
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_FL_NO_IT);
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_FL_NO_IT);
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_IN_FL_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_IN_FL_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6, GPIO_MODE_IN_FL_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5, GPIO_MODE_IN_FL_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_FL_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_FL_NO_IT);
 
-    GPIO_Init(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_FL_NO_IT);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_IN_FL_NO_IT);
 }
 
 void sensor_input_enable(void)
@@ -223,44 +202,26 @@ void sensor_input_enable(void)
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_PU_NO_IT);
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2, GPIO_MODE_IN_PU_NO_IT);
     GPIO_Init(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_IN_PU_NO_IT);
-    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3, GPIO_MODE_IN_PU_NO_IT);
 
-    GPIO_Init(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_4, GPIO_MODE_OUT_OD_LOW_SLOW);
+    GPIO_Init(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7, GPIO_MODE_OUT_OD_LOW_SLOW);
 }
 
 uint8_t sensor_input(void)
 {
-    uint8_t value = 1;
+    uint8_t value = 0;
 
     sensor_input_enable();
 
-    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_3) == RESET)
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1) != RESET)
+        value = 1;
+
+#if 0
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2) != RESET)
         value = 2;
 
-    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_4) == RESET)
+    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3) != RESET)
         value = 3;
-
-    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_5) == RESET)
-        value = 4;
-
-    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_6) == RESET)
-        value = 5;
-
-    if (GPIO_ReadInputPin(GPIOC, (GPIO_Pin_TypeDef)GPIO_PIN_7) == RESET)
-        value = 6;
-
-    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_1) == RESET)
-        value = 7;
-
-    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_2) == RESET)
-        value = 8;
-
-    if (GPIO_ReadInputPin(GPIOD, (GPIO_Pin_TypeDef)GPIO_PIN_3) == RESET)
-        value = 9;
+#endif
 
     sensor_input_disable();
 
@@ -270,6 +231,42 @@ uint8_t sensor_input(void)
 void sensor_init(void)
 {
     sensor_input_disable();
+}
+
+void waterlakagealarm(void)
+{
+    static uint32_t alarm_time;
+
+    uint8_t value = sensor_input();
+    if (value > 0) {
+        alarm_time = jiffies + msecs_to_jiffies(5000);
+    }
+
+    if (time_before(jiffies, alarm_time)) {
+        /* beeper on */
+        static uint8_t phase;
+
+        switch (phase) {
+        case 0:
+        case 1:
+            phase++;
+            BEEP_Cmd(ENABLE);
+            mdelay(200);
+            BEEP_Cmd(DISABLE);
+            mdelay(50);
+            break;
+        case 2:
+            phase++;
+            mdelay(200);
+            break;
+        default:
+            phase = 0;
+            break;
+        }
+    } else {
+        /* beeper off */
+        BEEP_Cmd(DISABLE);
+    }
 }
 
 int main()
@@ -283,17 +280,13 @@ int main()
 
     enableInterrupts();
 
-    keyboard_init();
-    pulse_output_init();
+    beeper_init();
     sensor_init();
 
     for (;;) {
         led_heartbeat();
 
-        if (keyboard_press() != -1) {
-            GPIO_WriteLow(GPIOB, (GPIO_Pin_TypeDef)GPIO_PIN_5);
-            pulse_output(sensor_input());
-        }
+        waterlakagealarm();
 
         watchdog();
     }

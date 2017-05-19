@@ -23,7 +23,8 @@ SOURCES += \
     src/time.c \
     libs/STM8S_StdPeriph_Driver/src/stm8s_gpio.c \
     libs/STM8S_StdPeriph_Driver/src/stm8s_iwdg.c \
-    libs/STM8S_StdPeriph_Driver/src/stm8s_rst.c
+    libs/STM8S_StdPeriph_Driver/src/stm8s_rst.c \
+    libs/STM8S_StdPeriph_Driver/src/stm8s_beep.c
 
 HEADERS += \
     src/jiffies.h \
